@@ -1,11 +1,6 @@
-variable "eks_cluster_name" {
-  description = "Name of the EKS cluster"
-  default     = "demo"
-}
-
-variable "eks_node_group_name" {
-  description = "Name of the EKS node group"
-  default     = "private-nodes"
+variable "environment" {
+  type = string
+  description = "environment name"
 }
 
 variable "eks_node_instance_types" {

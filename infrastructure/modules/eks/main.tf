@@ -1,6 +1,6 @@
 
 resource "aws_iam_role" "demo" {
-  name = "eks-cluster-demo"
+  name = "${var.environment}_demo"
 
   assume_role_policy = <<POLICY
 {
@@ -24,7 +24,7 @@ resource "aws_iam_role_policy_attachment" "demo-AmazonEKSClusterPolicy" {
 }
 
 resource "aws_eks_cluster" "demo" {
-  name     = var.eks_cluster_name
+  name     = "${var.environment}_demo"
   role_arn = aws_iam_role.demo.arn
 
   vpc_config {
@@ -35,7 +35,7 @@ resource "aws_eks_cluster" "demo" {
 }
 
 resource "aws_iam_role" "nodes" {
-  name = "eks-node-group-nodes"
+  name = "${var.environment}_eks-node-group-nodes"
 
   assume_role_policy = jsonencode({
     Statement = [{
@@ -66,7 +66,7 @@ resource "aws_iam_role_policy_attachment" "nodes-AmazonEC2ContainerRegistryReadO
 
 resource "aws_eks_node_group" "private-nodes" {
   cluster_name    = aws_eks_cluster.demo.name
-  node_group_name = var.eks_node_group_name
+  node_group_name = "${var.environment}_private-nodes"
   node_role_arn   = aws_iam_role.nodes.arn
 
   subnet_ids = var.private_subnet_ids
@@ -76,8 +76,8 @@ resource "aws_eks_node_group" "private-nodes" {
 
   scaling_config {
     desired_size = 1
-    max_size     = 5
-    min_size     = 0
+    max_size     = 2
+    min_size     = 1
   }
 
   update_config {

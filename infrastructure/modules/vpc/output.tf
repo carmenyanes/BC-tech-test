@@ -8,15 +8,15 @@ output "igw_id" {
 
 output "private_subnet_ids" {
   value = [
-    aws_subnet.private-us-east-1a.id,
-    aws_subnet.private-us-east-1b.id,
+    aws_subnet.private-a.id,
+    aws_subnet.private-b.id,
   ]
 }
 
 output "public_subnet_ids" {
   value = [
-    aws_subnet.public-us-east-1a.id,
-    aws_subnet.public-us-east-1b.id,
+    aws_subnet.public-a.id,
+    aws_subnet.public-b.id,
   ]
 }
 

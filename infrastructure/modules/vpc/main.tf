@@ -2,7 +2,7 @@ resource "aws_vpc" "main" {
   cidr_block = var.cidr_block
 
   tags = {
-    Name = "main"
+    Name = "${var.environment}_vpc"
   }
 }
 
@@ -10,55 +10,55 @@ resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name = "igw"
+    Name = "${var.environment}_igw"
   }
 }
 
-resource "aws_subnet" "private-us-east-1a" {
+resource "aws_subnet" "private-a" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = var.private_subnet_cidr_a
-  availability_zone = "us-east-1a"
+  availability_zone = "${var.aws_region}a"
 
   tags = {
-    "Name"                            = "private-us-east-1a"
+    "Name"                            = "private-${var.aws_region}a"
     "kubernetes.io/role/internal-elb" = "1"
     "kubernetes.io/cluster/demo"      = "owned"
   }
 }
 
-resource "aws_subnet" "private-us-east-1b" {
+resource "aws_subnet" "private-b" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = var.private_subnet_cidr_b
-  availability_zone = "us-east-1b"
+  availability_zone = "${var.aws_region}b"
 
   tags = {
-    "Name"                            = "private-us-east-1b"
+    "Name"                            = "private-${var.aws_region}b"
     "kubernetes.io/role/internal-elb" = "1"
     "kubernetes.io/cluster/demo"      = "owned"
   }
 }
 
-resource "aws_subnet" "public-us-east-1a" {
+resource "aws_subnet" "public-a" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = var.public_subnet_cidr_a
-  availability_zone       = "us-east-1a"
+  availability_zone       = "${var.aws_region}a"
   map_public_ip_on_launch = true
 
   tags = {
-    "Name"                       = "public-us-east-1a"
+    "Name"                       = "public-${var.aws_region}a"
     "kubernetes.io/role/elb"     = "1"
     "kubernetes.io/cluster/demo" = "owned"
   }
 }
 
-resource "aws_subnet" "public-us-east-1b" {
+resource "aws_subnet" "public-b" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = var.public_subnet_cidr_b
-  availability_zone       = "us-east-1b"
+  availability_zone       = "${var.aws_region}b"
   map_public_ip_on_launch = true
 
   tags = {
-    "Name"                       = "public-us-east-1b"
+    "Name"                       = "public-${var.aws_region}b"
     "kubernetes.io/role/elb"     = "1"
     "kubernetes.io/cluster/demo" = "owned"
   }
@@ -68,16 +68,16 @@ resource "aws_eip" "nat" {
   vpc = true
 
   tags = {
-    Name = "nat"
+    Name = "${var.environment}_nat"
   }
 }
 
 resource "aws_nat_gateway" "nat" {
   allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public-us-east-1a.id
+  subnet_id     = aws_subnet.public-a.id
 
   tags = {
-    Name = "nat"
+    Name = "${var.environment}_nat"
   }
 
   depends_on = [aws_internet_gateway.igw]
@@ -106,6 +106,7 @@ resource "aws_route_table" "private" {
 
   tags = {
     Name = "private"
+    environment = "${var.environment}"
   }
 }
 
@@ -132,25 +133,26 @@ resource "aws_route_table" "public" {
 
   tags = {
     Name = "public"
+    environment = "${var.environment}"
   }
 }
 
-resource "aws_route_table_association" "private-us-east-1a" {
-  subnet_id      = aws_subnet.private-us-east-1a.id
+resource "aws_route_table_association" "private-a" {
+  subnet_id      = aws_subnet.private-a.id
   route_table_id = aws_route_table.private.id
 }
 
-resource "aws_route_table_association" "private-us-east-1b" {
-  subnet_id      = aws_subnet.private-us-east-1b.id
+resource "aws_route_table_association" "private-b" {
+  subnet_id      = aws_subnet.private-b.id
   route_table_id = aws_route_table.private.id
 }
 
-resource "aws_route_table_association" "public-us-east-1a" {
-  subnet_id      = aws_subnet.public-us-east-1a.id
+resource "aws_route_table_association" "public-a" {
+  subnet_id      = aws_subnet.public-a.id
   route_table_id = aws_route_table.public.id
 }
 
-resource "aws_route_table_association" "public-us-east-1b" {
-  subnet_id      = aws_subnet.public-us-east-1b.id
+resource "aws_route_table_association" "public-b" {
+  subnet_id      = aws_subnet.public-b.id
   route_table_id = aws_route_table.public.id
 }
