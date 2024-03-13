@@ -1,71 +1,49 @@
 pipeline {
-  agent any
+    agent any
 
-  parameters {
-    string(name: 'AWS_ACCESS_KEY_ID', defaultValue: '${env.AWS_ACCESS_KEY_ID}', description: 'AWS Access Key ID')
-    string(name: 'AWS_SECRET_ACCESS_KEY', defaultValue: '${env.AWS_SECRET_ACCESS_KEY}', description: 'AWS Secret Access Key')
-    string(name: 'AWS_DEFAULT_REGION', defaultValue: 'us-east-1', description: 'AWS Default Region')
-    string(name: 'ECR_REPOSITORY_NAME', defaultValue: '${env.ECR_REPOSITORY_NAME}', description: 'Nombre del repositorio ECR')
-    string(name: 'EKS_CLUSTER_NAME', defaultValue: 'development_demo', description: 'Nombre del cluster EKS')
-  }
-
-  stages {
-    stage('Build Docker Image') {
-      steps {
-        script {
-          docker.build(
-            imageName: "${ECR_REPOSITORY_NAME}:latest",
-            dockerfilePath: 'microservice/Dockerfile',
-            buildContext: 'microservice'
-          )
-        }
-      }
+    environment {
+        AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
+        AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+        AWS_DEFAULT_REGION    = 'us-east-1'
+        ECR_REPOSITORY_NAME   = credentials('ECR_REPOSITORY_NAME ')
+        EKS_CLUSTER_NAME      = credentials('EKS_CLUSTER_NAME')
     }
 
-    stage('Push Docker Image to ECR') {
-      steps {
-        script {
-          docker.withRegistry('https://${AWS_DEFAULT_REGION}.dkr.ecr.aws.amazon.com', credentialsId: 'aws-ecr-credentials') {
-            push("${ECR_REPOSITORY_NAME}:latest")
-          }
+    stages {
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    dir('microservice') {
+                        sh 'docker build -t $ECR_REPOSITORY_NAME:latest .'
+                    }
+                }
+            }
         }
-      }
-    }
 
-    stage('Deploy to EKS') {
-      steps {
-        script {
-          def livenessProbe = [
-            initialDelaySeconds: 5,
-            periodSeconds: 10,
-            timeoutSeconds: 5,
-            successThreshold: 1,
-            failureThreshold: 3
-          ]
-          def readinessProbe = [
-            initialDelaySeconds: 5,
-            periodSeconds: 10,
-            timeoutSeconds: 5,
-            successThreshold: 1,
-            failureThreshold: 3
-          ]
-
-          kubernetesDeploy(
-            kubectl: 'kubectl',
-            containerImage: "${ECR_REPOSITORY_NAME}:latest",
-            namespace: 'microservice',
-            serviceName: 'microservice',
-            deploymentName: 'microservice',
-            replicas: 2,
-            nodeSelector: '',
-            podLabels: '',
-            containerPort: 8000,
-            servicePort: 8000,
-            livenessProbe: livenessProbe,
-            readinessProbe: readinessProbe
-          )
+        stage('Push Image to ECR') {
+            steps {
+                withCredentials([string(credentialsId: 'AWS_ACCESS_KEY_ID', variable: 'AWS_ACCESS_KEY_ID'),
+                                 string(credentialsId: 'AWS_SECRET_ACCESS_KEY', variable: 'AWS_SECRET_ACCESS_KEY')]) {
+                    script {
+                        sh 'aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com'
+                        sh 'docker tag $ECR_REPOSITORY_NAME:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest'
+                        sh 'docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPOSITORY_NAME:latest'
+                    }
+                }
+            }
         }
-      }
+
+        stage('Deploy to EKS') {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: 'AWS_ACCESS_KEY_ID', variable: 'AWS_ACCESS_KEY_ID'),
+                                     string(credentialsId: 'AWS_SECRET_ACCESS_KEY', variable: 'AWS_SECRET_ACCESS_KEY')]) {
+                        sh 'aws eks --region $AWS_DEFAULT_REGION update-kubeconfig --name $EKS_CLUSTER_NAME'
+                        sh 'kubectl apply -f k8s/microservice/deployment.yaml'
+                        sh 'kubectl apply -f k8s/microservice/service.yaml'
+                    }
+                }
+            }
+        }
     }
-  }
 }
