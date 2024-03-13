@@ -2,11 +2,11 @@ pipeline {
     agent any
 
     environment {
-        AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
-        AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+        AWS_ACCESS_KEY_ID     = env.AWS_ACCESS_KEY_ID
+        AWS_SECRET_ACCESS_KEY = env.AWS_SECRET_ACCESS_KEY
         AWS_DEFAULT_REGION    = 'us-east-1'
-        ECR_REPOSITORY_NAME   = credentials('ECR_REPOSITORY_NAME ')
-        EKS_CLUSTER_NAME      = 'development_demo'
+        ECR_REPOSITORY_NAME   = env.ECR_REPOSITORY_NAME
+        EKS_CLUSTER_NAME      = env.EKS_CLUSTER_NAME
     }
 
     stages {
