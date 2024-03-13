@@ -69,14 +69,14 @@ resource "aws_eks_node_group" "private-nodes" {
   node_group_name = "${var.environment}_private-nodes"
   node_role_arn   = aws_iam_role.nodes.arn
 
-  subnet_ids = var.private_subnet_ids
+  subnet_ids = var.subnet_ids
 
   capacity_type  = "ON_DEMAND"
   instance_types = var.eks_node_instance_types
 
   scaling_config {
-    desired_size = 1
-    max_size     = 2
+    desired_size = 3
+    max_size     = 5
     min_size     = 1
   }
 
