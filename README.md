@@ -138,13 +138,75 @@ kubectl create namespace sonarqube
 
 2. Corremos el deployment y service de sonarqube. 
 
+```
 kubectl apply -f deployment.yaml
 kubectl apply -f service.yaml
+```
 
 Para acceder a sonarqube se obtendrá la URL desde AWS, y el puerto será el 9000. 
 Al ingresar a sonarqube desde el navegador web se pedirán unas credenciales las cuales son el user y la contraseña respectivamente: admin / admin 
+
+
+
+
 
 ### Creación de cluster de development
 
 
 
+1. Inicializar Terraform y validar la configuración:
+
+```
+terraform init -var-file="development.tfvars"
+terraform validate
+```
+
+2. Con el comando terraform plan revisar la infraestructura y luego con terraform apply con la flag -auto-approve desplegar lo ya previsto en terraform plan.
+
+```
+terraform plan -var-file="development.tfvars"
+terraform apply -var-file="development.tfvars" -auto-approve
+```
+
+Se deben esperar unos minutos a que se despliegue completamente la infraestructura. 
+
+
+3. Al levantar el cluster de deployment vamos a proceder a hacer el primer despliegue manual de nuestro hello-world con java 17. Para eso, vamos a crear un ECR para almacenar la imagen de docker y nos vamos a autenticar en el registry para poder subir desde local la imagen de docker. 
+
+
+```
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <AWS-account-ID>.dkr.ecr.us-east-1.amazonaws.com
+```
+
+Nota: Si hay un mensaje de error usando el AWS CLI, nos vamos a asegurar de tener la última versión y docker instalado.
+
+4. Corremos los comandos para hacer el build de la imagen de docker del microservicio, agregamos la tag latest y el nombre del repositorio y lo subimos
+
+```
+docker build -t development .
+docker tag development:latest <nombre-de-tu-repositorio>:latest
+docker push <nombre-de-tu-repositorio>:latest
+```
+
+5. Ahora que hemos subido la imagen de docker del microservicio, n ubicamos en el directorio del mismo.
+
+```
+cd k8s/microservice 
+```
+
+
+6. Creamos los secretos con el siguiente comando, reemplazando los valores de 'your-access-key-id' y 'your-secret-access-key' por los de nuestra cuenta de AWS. 
+
+kubectl create secret generic aws-ecr-credentials \
+    --from-literal=AWS_ACCESS_KEY_ID=your-access-key-id \
+    --from-literal=AWS_SECRET_ACCESS_KEY=your-secret-access-key
+
+
+7. Corremos el deployment (que creará 2 réplicas del microservicio ) y creamos el load balancer dentro del cluster de kubernetes. (vamos a reemplazar la variable, por el nombre de nuestro repositorio)
+
+```
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+```
+
+para poder acceder a nuestro microservicio vamos a obtener la URL de AWS y vamos a ingresar con el puerto 8080. 
