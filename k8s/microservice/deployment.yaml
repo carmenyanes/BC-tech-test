@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: hola-mundo
-        image: "tu-repositorio-docker/hola-mundo:latest"
+        image: "339712827848.dkr.ecr.us-east-1.amazonaws.com/development:latest"
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
